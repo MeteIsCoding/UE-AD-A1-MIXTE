@@ -1,45 +1,71 @@
-from ariadne import graphql_sync, make_executable_schema, load_schema_from_path, ObjectType, QueryType, MutationType
-from flask import Flask, request, jsonify, make_response
+import os
+from pathlib import Path
+
+from ariadne import (
+    MutationType,
+    ObjectType,
+    QueryType,
+    graphql_sync,
+    load_schema_from_path,
+    make_executable_schema,
+)
+from flask import Flask, jsonify, make_response, request
 
 import resolvers as r
 
-PORT = 3001
-HOST = '0.0.0.0'
+PORT = int(os.environ.get("MOVIE_PORT", "3200"))
+HOST = "0.0.0.0"
+SERVICE_DIR = Path(__file__).resolve().parent
+
 app = Flask(__name__)
-
-# todo create elements for Ariadne
-
-type_defs = load_schema_from_path("movie.graphql")
+typeDefs = load_schema_from_path(str(SERVICE_DIR / "movie.graphql"))
 
 query = QueryType()
-movie = ObjectType("Movie")
 mutation = MutationType()
-actor = ObjectType("Actor")
+movieType = ObjectType("Movie")
 
+query.set_field("all_movies", r.all_movies)
 query.set_field("movie_with_id", r.movie_with_id)
+mutation.set_field("create_movie", r.create_movie)
 mutation.set_field("update_movie_rate", r.update_movie_rate)
-movie.set_field('actors', r.resolve_actors_in_movie)
+mutation.set_field("delete_movie", r.delete_movie)
+movieType.set_field("actors", r.resolve_actors_in_movie)
 
-schema = make_executable_schema(type_defs, query, mutation, movie, actor)
+schema = make_executable_schema(typeDefs, query, mutation, movieType)
 
-# root message
-@app.route("/", methods=['GET'])
+
+@app.route("/", methods=["GET"])
 def home():
-    return make_response("<h1 style='color:blue'>Welcome to the Movie service!</h1>",200)
+    """Retourne le message d'accueil du service"""
 
-# graphql entry points
-@app.route('/graphql', methods=['POST'])
+    return make_response("Welcome", 200)
+
+
+@app.route("/graphql", methods=["POST"])
 def graphql_server():
-    data = request.get_json()
+    """Exécute query ou mutation reçu dans le body jsob"""
+
+    requestData = request.get_json(silent=True)
+
+    if not isinstance(requestData, dict):
+        return (
+            jsonify(
+                {
+                    "errors": [{"message": "body doit être un objet json"}],
+                }
+            ),
+            400,
+        )
+
     success, result = graphql_sync(
         schema,
-        data,
-        context_value=None,
-        debug=app.debug
+        requestData,
+        context_value={},
+        debug=app.debug,
     )
-    status_code = 200 if success else 400
-    return jsonify(result), status_code
+    statusCode = 200 if success else 400
+    return jsonify(result), statusCode
+
 
 if __name__ == "__main__":
-    print("Server running in port %s"%(PORT))
     app.run(host=HOST, port=PORT)
