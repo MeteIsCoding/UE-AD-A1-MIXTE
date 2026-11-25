@@ -169,9 +169,10 @@ def create_schedule():
                     409,
                 )
 
-        newSchedule = {"date": dateValue,
-                       "movies": movieIds,
-                      }
+        newSchedule = {
+            "date": dateValue,
+            "movies": movieIds,
+        }
 
         scheduleData["schedule"].append(newSchedule)
         save_schedule_fichier(scheduleData)
