@@ -1,0 +1,34 @@
+type Query {
+    booking_with_userid(_userid: String!): Booking
+}
+
+type Mutation {
+    create_booking(
+        _userid: String!
+        _date: String!
+        _movieid: String!
+    ): Booking!
+    delete_booking(
+        _userid: String!
+        _date: String!
+        _movieid: String!
+    ): Boolean!
+}
+
+type Booking {
+    userid: String!
+    dates: [BookingDate!]!
+}
+
+type BookingDate {
+    date: String!
+    movies: [String!]!
+    movie_details: [Movie]!
+}
+
+type Movie {
+    id: String!
+    title: String!
+    director: String!
+    rating: Float!
+}
