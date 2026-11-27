@@ -1,7 +1,46 @@
 services:
-  movie:
-    build: ./movie/
-    ports:
-      - "3200:3200"
-  # to continue
+    movie:
+        build:
+            context: .
+            dockerfile: movie/Dockerfile
+        user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+        ports:
+            - "3200:3200"
+        volumes:
+            - "./movie/data:/app/data"
 
+    booking:
+        build:
+            context: .
+            dockerfile: booking/Dockerfile
+        user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+        ports:
+            - "3001:3001"
+        environment:
+            MOVIE_GRAPHQL_URL: "http://movie:3200/graphql"
+            SCHEDULE_REST_URL: "http://schedule:3002/schedule"
+        volumes:
+            - "./booking/data:/app/data"
+        depends_on:
+            - movie
+            - schedule
+
+    schedule:
+        build:
+            context: .
+            dockerfile: schedule/Dockerfile
+        user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+        ports:
+            - "3002:3002"
+        volumes:
+            - "./schedule/data:/app/data"
+
+    user:
+        build:
+            context: .
+            dockerfile: user/Dockerfile
+        user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+        ports:
+            - "3004:3004"
+        volumes:
+            - "./user/data:/app/data"
